@@ -1,0 +1,66 @@
+import cv2     # for capturing videos
+import math   # for mathematical operations
+import matplotlib.pyplot as plt    # for plotting the images
+import pandas as pd
+from keras.preprocessing import image   # for preprocessing the images
+import numpy as np    # for mathematical operations
+from keras.utils import np_utils
+from skimage.transform import resize   # for resizing images
+from sklearn.model_selection import train_test_split
+import glob
+import tqdm
+
+f = open("frames.txt", "r")
+temp = f.read()
+videos = temp.split('\n')
+
+# creating a data frame having video names
+data = pd.DataFrame()
+data['video_name'] = videos
+data = data[:-1]
+
+#extract tags
+data_video_tag = []
+for i in range(data.shape[0]):
+    data_video_tag.append(data['video_name'][i].split('/')[0])
+
+data['tag'] = data_video_tag
+
+# extract the frames to folder
+
+for i in tqdm.tqdm(range(data.shape[0])):
+    count = 0
+    videoFile = data['video_name'][i]
+    cap = cv2.VideoCapture(videoFile.split(' ')[0].split('/')[1])   # capturing the video from the given path
+    frameRate = cap.get(5) #frame rate
+    x=1
+    while(cap.isOpened()):
+        frameId = cap.get(1) #current frame number
+        ret, frame = cap.read()
+        if (ret != True):
+            break
+        if (frameId % math.floor(frameRate) == 0):
+            # storing the frames in a new folder named train_1
+            filename ='frames/' + videoFile.split('/')[1].split(' ')[0] +"_frame%d.jpg" % count;count+=1
+            cv2.imwrite(filename, frame)
+    cap.release()
+
+images = glob.glob("frames/*.jpg")
+image = []
+label = []
+for i in tqdm.tqdm(range(len(images))):
+    # creating the image name
+    image.append(images[i].split('/')[1])
+    # creating the class of image
+    label.append(images[i].split('/')[1].split('_')[1])
+
+# storing the images and their class in a dataframe
+data = pd.DataFrame()
+data['image'] = image
+data['class'] = label
+
+# converting the dataframe into csv file
+data.to_csv('videos_frames.csv', header=True, index=False)
+
+
+
